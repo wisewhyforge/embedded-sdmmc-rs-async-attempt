@@ -94,8 +94,8 @@ pub mod fat;
 pub mod filesystem;
 pub mod sdcard;
 
-use core::fmt::Debug;
-use embedded_io::ErrorKind;
+use core::fmt::{Debug};
+use embedded_io_async::ErrorKind;
 use filesystem::Handle;
 
 #[doc(inline)]
@@ -230,7 +230,7 @@ where
     LockError,
 }
 
-impl<E: Debug> embedded_io::Error for Error<E> {
+impl<E: Debug> embedded_io_async::Error for Error<E> {
     fn kind(&self) -> ErrorKind {
         match self {
             Error::DeviceError(_)
@@ -391,10 +391,10 @@ where
     ///
     /// You can then read the directory entries with `iterate_dir`, or you can
     /// use `open_file_in_dir`.
-    pub fn open_root_dir(
+    pub async fn open_root_dir(
         &self,
     ) -> Result<crate::Directory<'_, D, T, MAX_DIRS, MAX_FILES, MAX_VOLUMES>, Error<D::Error>> {
-        let d = self.volume_mgr.open_root_dir(self.raw_volume)?;
+        let d = self.volume_mgr.open_root_dir(self.raw_volume).await?;
         Ok(d.to_directory(self.volume_mgr))
     }
 
@@ -409,23 +409,24 @@ where
     /// to using [`core::mem::drop`] or letting the `Volume` go out of scope,
     /// except this lets the user handle any errors that may occur in the process,
     /// whereas when using drop, any errors will be discarded silently.
-    pub fn close(self) -> Result<(), Error<D::Error>> {
+    pub async fn close(self) -> Result<(), Error<D::Error>> {
         let result = self.volume_mgr.close_volume(self.raw_volume);
         core::mem::forget(self);
-        result
+        result.await
     }
 }
 
-impl<'a, D, T, const MAX_DIRS: usize, const MAX_FILES: usize, const MAX_VOLUMES: usize> Drop
-    for Volume<'a, D, T, MAX_DIRS, MAX_FILES, MAX_VOLUMES>
-where
-    D: crate::BlockDevice,
-    T: crate::TimeSource,
-{
-    fn drop(&mut self) {
-        _ = self.volume_mgr.close_volume(self.raw_volume)
-    }
-}
+// impl<'a, D, T, const MAX_DIRS: usize, const MAX_FILES: usize, const MAX_VOLUMES: usize> Drop
+//     for Volume<'a, D, T, MAX_DIRS, MAX_FILES, MAX_VOLUMES>
+// where
+//     D: crate::BlockDevice,
+//     T: crate::TimeSource,
+// {
+//     fn drop(&mut self) {
+        
+//         _ = self.volume_mgr.close_volume(self.raw_volume)
+//     }
+// }
 
 impl<'a, D, T, const MAX_DIRS: usize, const MAX_FILES: usize, const MAX_VOLUMES: usize>
     core::fmt::Debug for Volume<'a, D, T, MAX_DIRS, MAX_FILES, MAX_VOLUMES>

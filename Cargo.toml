@@ -5,10 +5,10 @@ description = "A basic SD/MMC driver for Embedded Rust."
 edition = "2021"
 keywords = ["sdcard", "mmc", "embedded", "fat32"]
 license = "MIT OR Apache-2.0"
-name = "embedded-sdmmc"
+name = "embedded-sdmmc-async"
 readme = "README.md"
 repository = "https://github.com/rust-embedded-community/embedded-sdmmc-rs"
-version = "0.9.0"
+version = "0.9.1"
 
 # Make sure to update the CI too!
 rust-version = "1.86"
@@ -16,7 +16,8 @@ rust-version = "1.86"
 [dependencies]
 byteorder = {version = "1", default-features = false}
 defmt = {version = "1.0.1", optional = true}
-embedded-hal = "1.0.0"
+embedded-hal-async = "1.0.0"
+embedded-io-async = "0.6.1"
 embedded-io = "0.6.1"
 heapless = "0.9.1"
 log = {version = "0.4", default-features = false, optional = true}

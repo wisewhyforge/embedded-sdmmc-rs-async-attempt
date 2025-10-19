@@ -2,7 +2,7 @@
 
 use std::io::prelude::*;
 
-use embedded_sdmmc::{Block, BlockCount, BlockDevice, BlockIdx};
+use embedded_sdmmc_async::{Block, BlockCount, BlockDevice, BlockIdx};
 
 /// This file contains:
 ///
@@ -65,7 +65,7 @@ impl From<flate2::DecompressError> for Error {
 
 /// Implements the block device traits for a chunk of bytes in RAM.
 ///
-/// The slice should be a multiple of `embedded_sdmmc::Block::LEN` bytes in
+/// The slice should be a multiple of `embedded_sdmmc_async::Block::LEN` bytes in
 /// length. If it isn't the trailing data is discarded.
 pub struct RamDisk<T> {
     contents: std::cell::RefCell<T>,
@@ -85,13 +85,13 @@ where
 {
     type Error = Error;
 
-    fn read(&self, blocks: &mut [Block], start_block_idx: BlockIdx) -> Result<(), Self::Error> {
+    async fn read(&self, blocks: &mut [Block], start_block_idx: BlockIdx) -> Result<(), Self::Error> {
         let borrow = self.contents.borrow();
         let contents: &[u8] = borrow.as_ref();
         let mut block_idx = start_block_idx;
         for block in blocks.iter_mut() {
-            let start_offset = block_idx.0 as usize * embedded_sdmmc::Block::LEN;
-            let end_offset = start_offset + embedded_sdmmc::Block::LEN;
+            let start_offset = block_idx.0 as usize * embedded_sdmmc_async::Block::LEN;
+            let end_offset = start_offset + embedded_sdmmc_async::Block::LEN;
             if end_offset > contents.len() {
                 return Err(Error::OutOfBounds(block_idx));
             }
@@ -103,13 +103,13 @@ where
         Ok(())
     }
 
-    fn write(&self, blocks: &[Block], start_block_idx: BlockIdx) -> Result<(), Self::Error> {
+    async fn write(&self, blocks: &[Block], start_block_idx: BlockIdx) -> Result<(), Self::Error> {
         let mut borrow = self.contents.borrow_mut();
         let contents: &mut [u8] = borrow.as_mut();
         let mut block_idx = start_block_idx;
         for block in blocks.iter() {
-            let start_offset = block_idx.0 as usize * embedded_sdmmc::Block::LEN;
-            let end_offset = start_offset + embedded_sdmmc::Block::LEN;
+            let start_offset = block_idx.0 as usize * embedded_sdmmc_async::Block::LEN;
+            let end_offset = start_offset + embedded_sdmmc_async::Block::LEN;
             if end_offset > contents.len() {
                 return Err(Error::OutOfBounds(block_idx));
             }
@@ -119,10 +119,10 @@ where
         Ok(())
     }
 
-    fn num_blocks(&self) -> Result<BlockCount, Self::Error> {
+    async fn num_blocks(&self) -> Result<BlockCount, Self::Error> {
         let borrow = self.contents.borrow();
         let contents: &[u8] = borrow.as_ref();
-        let len_blocks = contents.len() / embedded_sdmmc::Block::LEN;
+        let len_blocks = contents.len() / embedded_sdmmc_async::Block::LEN;
         if len_blocks > u32::MAX as usize {
             panic!("Test disk too large! Only 2**32 blocks allowed");
         }
@@ -146,11 +146,11 @@ pub fn make_block_device(gzip_bytes: &[u8]) -> Result<RamDisk<Vec<u8>>, Error> {
 }
 
 pub struct TestTimeSource {
-    fixed: embedded_sdmmc::Timestamp,
+    fixed: embedded_sdmmc_async::Timestamp,
 }
 
-impl embedded_sdmmc::TimeSource for TestTimeSource {
-    fn get_timestamp(&self) -> embedded_sdmmc::Timestamp {
+impl embedded_sdmmc_async::TimeSource for TestTimeSource {
+    fn get_timestamp(&self) -> embedded_sdmmc_async::Timestamp {
         self.fixed
     }
 }
@@ -164,7 +164,7 @@ impl embedded_sdmmc::TimeSource for TestTimeSource {
 /// in 1981.
 pub fn make_time_source() -> TestTimeSource {
     TestTimeSource {
-        fixed: embedded_sdmmc::Timestamp {
+        fixed: embedded_sdmmc_async::Timestamp {
             year_since_1970: 33,
             zero_indexed_month: 3,
             zero_indexed_day: 3,
